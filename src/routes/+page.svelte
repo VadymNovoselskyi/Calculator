@@ -1,35 +1,91 @@
 <script>
-    let displayValue = '+';
-    let operators = [];
+    let displayValue = '';
     let values = [];
+    let operators = [];
 
     function addDidgit(event) {
-        displayValue += event.target.innerText;
+        const digit = event.target.innerText;
+        const lastIndex = /[+\-x\/]$/.test(displayValue) //tests if the last char is '+', '-', 'x' or '/'
+        ? values.length //if true, then new index at values shall be created
+        : (values.length || 1) - 1; //if false, then digit shall be added to existing value at the last place
+
+        //does not allow '0' to be the beginning of some number (otherwise ex 01 would be possible)
+        if(digit == 0 && !(/\d$/.test(displayValue))) return;
+
+        //add digit to the display and memory
+        displayValue += digit;
+
+        //values[lastIndex] ?? '' is needed when trying to add new index
+        values[lastIndex] = (values[lastIndex] ?? '') + digit; 
     }
 
     function handleOperator(event) {
-        let operator = event.target.innerText
+        const operator = event.target.innerText;
+        //check if displayValue ends with a non-digit ('+', '-', 'x' or '/')
+        if (/\D$/.test(displayValue)) {
+            if(operator === '-') {
+                values[0] = '-';
+                displayValue += '(-)';
+            }
+            return;
+        }
+
         operators.push(operator);
-
-        // const digitRegex = /.*[+\-*/](\w+)$/;
-        // const match = displayValue.match(digitRegex);
-        // console.log(match)
-
-        displayValue += ` ${operator} `;
+        displayValue += operator;
     }
 
-    function addComma(event) {
+    function addComma() {
+        const lastIndex = (values.length || 1) - 1;
+        if(values[lastIndex] === '' || !values[lastIndex]) {
+            values[lastIndex] = '0.';
+            displayValue += '0.';
+            return;
+        }
+        else if(values[lastIndex].includes('.')) return;
 
+        values[lastIndex] += '.';
+        displayValue += '.';
     }
 
-    function handleClick(event) {
+    function handleCalculation() {
+        const operatorOrder = ['/x', '+-'];
+        let answer = 0;
+        const deletedIndexes = [];
+        if (operators.length + 1 === values.length && !values[values.length - 1]) operators.pop();
+        console.table(values)
+        console.table(operators)
 
+        operatorOrder.forEach(searchedOperator => {
+            operators.forEach((operator, index) => {
+                if (!searchedOperator.includes(operator)) return;
+                
+                index -= deletedIndexes.reduce((sum, deletedIndex) => sum += deletedIndex < index ? 1 : 0, 0);
+                const result = handleMathOperation(operator, Number(values[index]), Number(values[index + 1])); 
+                values[index] = result;
+                values.splice(index + 1, 1);
+                deletedIndexes.push(index);
+
+                answer = result
+            });
+        });
+        clear();
+        displayValue = `${answer}`;
+        values.push(answer);
+    }
+
+    function handleMathOperation(operator, number1, number2) {
+        switch (operator) {
+            case '/': return number1 / number2;
+            case 'x': return number1 * number2;
+            case '+': return number1 + number2;
+            case '-': return number1 - number2;
+        }
     }
 
     function clear() {
-        displayValue = 0;
-        operators = []
-        values = []
+        displayValue = '';
+        values = [];
+        operators = [];
     }
 </script>
 
@@ -38,7 +94,7 @@
 </svelte:head>
 
 <main>
-    <input type="text" id = 'lcd' value={displayValue}>
+    <input type="text" id = 'lcd' value={displayValue} disabled>
     <section id = 'keyBoard'>
         <button id='b7' on:click={addDidgit}>7</button>
         <button id='b8' on:click={addDidgit}>8</button>
@@ -57,7 +113,7 @@
         
         <button id='comma' on:click={addComma}>,</button>
         <button id='b0' on:click={addDidgit}>0</button>
-        <button id='enter' on:click={handleClick}>=</button>
+        <button id='enter' on:click={handleCalculation}>=</button>
         <button id='div' on:click={handleOperator}>/</button>
 
         <button id='clear' style = 'grid-column: span 4;'  on:click={clear}>CLEAR</button>

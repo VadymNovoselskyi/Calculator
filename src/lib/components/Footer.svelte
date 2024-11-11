@@ -1,5 +1,5 @@
 <footer>
-    <h1>Kalkylator</h1>
+    <h1>Kalkylator Footer</h1>
 </footer>
 
 <style lang="scss">

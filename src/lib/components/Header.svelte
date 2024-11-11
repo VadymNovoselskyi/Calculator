@@ -1,5 +1,5 @@
 <header>
-    <h1>Kalkylator</h1>
+    <h1>Kalkylator Header</h1>
 </header>
 
 <style lang="scss">
