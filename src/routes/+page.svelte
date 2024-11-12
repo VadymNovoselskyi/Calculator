@@ -1,82 +1,77 @@
 <script>
+    const OPERATORS_ORDER = ['/×', '+-'];
     let displayValue = '';
-    let values = [];
-    let operators = [];
 
-    function addDidgit(event) {
+    function validateDidgit(event) {
         const digit = event.target.innerText;
-        const lastIndex = /[+\-x\/]$/.test(displayValue) //tests if the last char is '+', '-', 'x' or '/'
-        ? values.length //if true, then new index at values shall be created
-        : (values.length || 1) - 1; //if false, then digit shall be added to existing value at the last place
 
         //does not allow '0' to be the beginning of some number (otherwise ex 01 would be possible)
-        if(digit == 0 && !(/\d$/.test(displayValue))) return;
+        if(digit == 0 && !(/[\d.]$/.test(displayValue))) return;
 
         //add digit to the display and memory
         displayValue += digit;
-
-        //values[lastIndex] ?? '' is needed when trying to add new index
-        values[lastIndex] = (values[lastIndex] ?? '') + digit; 
     }
 
-    function handleOperator(event) {
+    function validateOperator(event) {
         const operator = event.target.innerText;
-        //check if displayValue ends with a non-digit ('+', '-', 'x' or '/')
-        if (/\D$/.test(displayValue)) {
-            if(operator === '-') {
-                values[0] = '-';
-                displayValue += '(-)';
-            }
+        //check if displayValue ends with a non-digit ('+', '-', '×' or '/')
+        if (/\D$/.test(displayValue) || !(/\d$/.test(displayValue))) {
+            if(operator === '-') displayValue += '(-)';
             return;
         }
 
-        operators.push(operator);
         displayValue += operator;
     }
 
-    function addComma() {
-        const lastIndex = (values.length || 1) - 1;
-        if(values[lastIndex] === '' || !values[lastIndex]) {
-            values[lastIndex] = '0.';
-            displayValue += '0.';
+    function validateComma() {
+        if (/[\+\-×\/]$/.test(displayValue)) {
+            displayValue = '0.';
             return;
         }
-        else if(values[lastIndex].includes('.')) return;
+        const regex = /(?<=\.)\d+$/;
 
-        values[lastIndex] += '.';
+        if(regex.test(displayValue) || /\.$/.test(displayValue)) return;
+
         displayValue += '.';
     }
 
-    function handleCalculation() {
-        const operatorOrder = ['/x', '+-'];
+    function calculate() {
         let answer = 0;
         const deletedIndexes = [];
-        if (operators.length + 1 === values.length && !values[values.length - 1]) operators.pop();
-        console.table(values)
-        console.table(operators)
+        
+        displayValue = displayValue.replace(/\D+$/, '');
 
-        operatorOrder.forEach(searchedOperator => {
+        const values = (displayValue.split(/(?<!\(\-)[\+\-×\/](?!\))/g).map(number => number.replace(/\(-\)/g, '-')));
+        const operators = (displayValue.replace(/\(-\)/g, '').match(/[\+\-×\/]/g));
+        console.table(values);  
+        console.table(operators);
+
+        if(!values || !operators) {
+            clear();
+            return;
+        }
+
+        OPERATORS_ORDER.forEach(searchedOperator => {
             operators.forEach((operator, index) => {
                 if (!searchedOperator.includes(operator)) return;
                 
                 index -= deletedIndexes.reduce((sum, deletedIndex) => sum += deletedIndex < index ? 1 : 0, 0);
-                const result = handleMathOperation(operator, Number(values[index]), Number(values[index + 1])); 
+                const result = handleArithmetics(operator, Number(values[index]), Number(values[index + 1])); 
                 values[index] = result;
                 values.splice(index + 1, 1);
                 deletedIndexes.push(index);
 
-                answer = result
+                answer = result;
             });
         });
         clear();
         displayValue = `${answer}`;
-        values.push(answer);
     }
 
-    function handleMathOperation(operator, number1, number2) {
+    function handleArithmetics(operator, number1, number2) {
         switch (operator) {
             case '/': return number1 / number2;
-            case 'x': return number1 * number2;
+            case '×': return number1 * number2;
             case '+': return number1 + number2;
             case '-': return number1 - number2;
         }
@@ -84,8 +79,6 @@
 
     function clear() {
         displayValue = '';
-        values = [];
-        operators = [];
     }
 </script>
 
@@ -96,25 +89,25 @@
 <main>
     <input type="text" id = 'lcd' value={displayValue} disabled>
     <section id = 'keyBoard'>
-        <button id='b7' on:click={addDidgit}>7</button>
-        <button id='b8' on:click={addDidgit}>8</button>
-        <button id='b9' on:click={addDidgit}>9</button>
-        <button id='add' on:click={handleOperator}>+</button>
+        <button on:click={validateDidgit}>7</button>
+        <button on:click={validateDidgit}>8</button>
+        <button on:click={validateDidgit}>9</button>
+        <button on:click={validateOperator}>+</button>
 
-        <button id='b4' on:click={addDidgit}>4</button>
-        <button id='b5' on:click={addDidgit}>5</button>
-        <button id='b6' on:click={addDidgit}>6</button>
-        <button id='sub' on:click={handleOperator}>-</button>
+        <button on:click={validateDidgit}>4</button>
+        <button on:click={validateDidgit}>5</button>
+        <button on:click={validateDidgit}>6</button>
+        <button on:click={validateOperator}>-</button>
 
-        <button id='b1' on:click={addDidgit}>1</button>
-        <button id='b2' on:click={addDidgit}>2</button>
-        <button id='b3' on:click={addDidgit}>3</button>
-        <button id='mul' on:click={handleOperator}>x</button>
+        <button on:click={validateDidgit}>1</button>
+        <button on:click={validateDidgit}>2</button>
+        <button on:click={validateDidgit}>3</button>
+        <button on:click={validateOperator}>×</button>
         
-        <button id='comma' on:click={addComma}>,</button>
-        <button id='b0' on:click={addDidgit}>0</button>
-        <button id='enter' on:click={handleCalculation}>=</button>
-        <button id='div' on:click={handleOperator}>/</button>
+        <button on:click={validateComma}>,</button>
+        <button on:click={validateDidgit}>0</button>
+        <button on:click={calculate}>=</button>
+        <button on:click={validateOperator}>/</button>
 
         <button id='clear' style = 'grid-column: span 4;'  on:click={clear}>CLEAR</button>
     </section>
